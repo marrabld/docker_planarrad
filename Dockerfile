@@ -14,8 +14,6 @@
 #	--name planarRad \
 #	dan/planarRad
 
-
-
 # Base docker image
 FROM ubuntu:16.04
 LABEL maintainer "Daniel Marrable  <marrabld+planarrad@gmail.com>"
@@ -26,10 +24,18 @@ RUN tar xfvz /src/planarrad_free_src_0.9.5beta_2015_07_17.tar.gz -C /src
 
 # Install planarrad dependencies
 RUN apt-get update && apt-get install -y \
-        g++ libqt4-dev libsm-dev libjpeg-dev libboost-all-dev build-essential
+        g++ libqt4-dev libsm-dev libjpeg-dev libboost-all-dev build-essential curl git python-scipy python-qt4 python-matplotlib python-seaborn
 
+RUN useradd -ms /bin/bash planarrad
 
-RUN export JUDE2DIR=$HOME/jude2_install \
+# USER planarrad
+WORKDIR /home/planarrad
+
+RUN mkdir -p /home/planarrad/.planarradpy/log/
+RUN chown -R planarrad:planarrad /home/planarrad
+
+RUN export INSTALL_DIR=/home/planarrad \
+        &&  export JUDE2DIR=$INSTALL_DIR/jude2_install \
         && export LD_LIBRARY_PATH=$JUDE2DIR/lib:$LD_LIBRARY_PATH \
         && export PATH=$JUDE2DIR/bin:$PATH \
 	&& echo $JUDE2DIR
@@ -38,22 +44,21 @@ RUN export JUDE2DIR=$HOME/jude2_install \
 RUN     cd /src/planarrad_free_src_0.9.5beta_2015_07_17 \
         && /src/planarrad_free_src_0.9.5beta_2015_07_17/example_build
 
-	# Cleanup
-RUN apt-get purge --auto-remove -y curl \
-	&& rm -rf /var/lib/apt/lists/* \
-	&& rm -rf /src/*.deb \
-	&& rm -rf /src/planarrad_free_src_0.9.5beta_2015_07_17 \
+RUN git clone https://github.com/marrabld/planarradpy.git
 
-# Add chrome user
-#RUN groupadd -r chrome && useradd -r -g chrome -G audio,video chrome \
-#    && mkdir -p /home/chrome/Downloads && chown -R chrome:chrome /home/chrome
+USER root
 
-#COPY local.conf /etc/fonts/local.conf
+# Cleanup
+# RUN apt-get purge --auto-remove -y curl \
+#	&& rm -rf /var/lib/apt/lists/* \
 
-# Run Chrome as non privileged user
-RUN useradd -s /bin/bash planarrad
+#RUN rm -rf /src/*.deb \
+#    && rm -rf /src/planarrad_free_src_0.9.5beta_2015_07_17
+
+
+
+RUN chown -R planarrad:planarrad /home/planarrad
+
 USER planarrad
 
-# Autorun chrome
-ENTRYPOINT [ "planarrad_free" ]
-# CMD [ "--user-data-dir=/data" ]
+CMD [ "/bin/bash" ]
